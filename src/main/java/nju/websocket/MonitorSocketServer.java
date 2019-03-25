@@ -37,16 +37,11 @@ public class MonitorSocketServer {
                 while(true) {
                     DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
                     socket.receive(receivePacket);
-                    String msg = new String(receiveData, 0, receivePacket.getLength());
-                    System.out.println(msg);
+                    String msg = new String(receiveData, 0, receivePacket.getLength(), "utf-8");
 
-                    // TODO 这边需要解析一下
-                    JSONObject result = new JSONObject();
-                    result.put("source", "");
-                    result.put("target", "");
-                    result.put("type", "PING");
+                    System.out.println(msg + "jjjj");
 
-                    MonitorWebSocket.sendInfo(result.toJSONString());
+                    MonitorWebSocket.sendInfo(msg);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -54,83 +49,6 @@ public class MonitorSocketServer {
         });
         serverThread.start();
     }
-
-    /**
-     * 启动socket服务，开启监听
-     *
-     * @param port
-     * @throws IOException
-     */
-    public void startSocketServer(int port) {
-        try {
-            //打开通信信道
-            ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-            //设置为非阻塞
-            serverSocketChannel.configureBlocking(false);
-            //获取套接字
-            ServerSocket serverSocket = serverSocketChannel.socket();
-            //绑定端口号
-            serverSocket.bind(new InetSocketAddress(port));
-            //打开监听器
-            selector = Selector.open();
-            //将通信信道注册到监听器
-            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-
-            //监听器会一直监听，如果客户端有请求就会进入相应的事件处理
-            while (true) {
-                selector.select();//select方法会一直阻塞直到有相关事件发生或超时
-                Set<SelectionKey> selectionKeys = selector.selectedKeys();//监听到的事件
-                for (SelectionKey key : selectionKeys) {
-                    handle(key);
-                }
-                selectionKeys.clear();//清除处理过的事件
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
-    }
-
-    /**
-     * 处理不同的事件
-     *
-     * @param selectionKey
-     * @throws IOException
-     */
-    private void handle(SelectionKey selectionKey) throws IOException {
-        ServerSocketChannel serverSocketChannel = null;
-        SocketChannel socketChannel = null;
-        String requestMsg = "";
-        int count = 0;
-        if (selectionKey.isAcceptable()) {
-            // 每有客户端连接，即注册通信信道为可读
-            serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
-            socketChannel = serverSocketChannel.accept();
-            socketChannel.configureBlocking(false);
-            socketChannel.register(selector, SelectionKey.OP_READ);
-        } else if (selectionKey.isReadable()) {
-            socketChannel = (SocketChannel) selectionKey.channel();
-            rBuffer.clear();
-            count = socketChannel.read(rBuffer);
-            // 读取数据
-            if (count > 0) {
-                rBuffer.flip();
-                requestMsg = String.valueOf(cs.decode(rBuffer).array());
-            }
-            String responseMsg = "已收到客户端的消息:" + requestMsg;
-            System.out.println(responseMsg);
-
-            // TODO 这边需要解析一下
-            JSONObject result = new JSONObject();
-            result.put("source", "");
-            result.put("target", "");
-            result.put("type", "PING");
-
-            MonitorWebSocket.sendInfo(result.toJSONString());
-        }
-    }
-
 }
 
 
